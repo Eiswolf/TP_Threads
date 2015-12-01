@@ -8,6 +8,7 @@
 #include <complex.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "tsp-types.h"
 #include "tsp-job.h"
@@ -25,6 +26,36 @@
 
 /* tableau des distances */
 tsp_distance_matrix_t tsp_distance ={};
+
+struct mult_arg {
+	tsp_path_t * sol; 			// SI CA BUG C'EST SUREMENT A CAUSE DE CA!
+	struct tsp_queue *q;
+	uint64_t * vpres; 
+	long long int * cut; 
+	tsp_path_t * s; 
+	int * sol_len;
+};
+
+// Source 
+void *f(void *arg){
+	struct mult_arg * m = arg; 
+	while (!empty_queue (m->q)) {
+        int hops = 0, len = 0;
+        get_job (m->q, *(m->sol), &hops, &len, m->vpres);
+	
+	// le noeud est moins bon que la solution courante
+	if (minimum < INT_MAX
+	    && (nb_towns - hops) > 10
+	    && ( (lower_bound_using_hk(*(m->sol), hops, len, *(m->vpres))) >= minimum
+		 || (lower_bound_using_lp(*(m->sol), hops, len, *(m->vpres))) >= minimum)
+	    )
+
+	  continue;
+
+	tsp (hops, len, *(m->vpres), *(m->sol), m->cut, *(m->s), m->sol_len);
+    }
+    return NULL; 
+}
 
 /** Paramètres **/
 
@@ -131,22 +162,27 @@ int main (int argc, char **argv)
     tsp_path_t solution;
     memset (solution, -1, MAX_TOWNS * sizeof (int));
     solution[0] = 0;
-    while (!empty_queue (&q)) {
-        int hops = 0, len = 0;
-        get_job (&q, solution, &hops, &len, &vpres);
-	
-	// le noeud est moins bon que la solution courante
-	if (minimum < INT_MAX
-	    && (nb_towns - hops) > 10
-	    && ( (lower_bound_using_hk(solution, hops, len, vpres)) >= minimum
-		 || (lower_bound_using_lp(solution, hops, len, vpres)) >= minimum)
-	    )
 
-	  continue;
+    // 
+    pthread_t tid; // 1 threads
+    int rep;
+    struct mult_arg *pi;
+    pi->sol = &solution;
+    pi->q = &q;
+    pi->vpres = &vpres; 
+    pi->cut = &cuts; 
+    pi->s = &sol; 
+    pi->sol_len = &sol_len;
 
-	tsp (hops, len, vpres, solution, &cuts, sol, &sol_len);
-    }
-    
+    if ( 0 == (rep = pthread_create(&tid, NULL, f,(void *)pi)) ) {
+		printf("Pthread creee\n");
+	} else { 
+		fprintf(stderr, "Yo"); perror("pthread_create");
+	} 
+
+    // ON TAFF ICI
+
+
     clock_gettime (CLOCK_REALTIME, &t2);
 
     if (affiche_sol)
@@ -159,3 +195,5 @@ int main (int argc, char **argv)
 
     return 0 ;
 }
+
+
