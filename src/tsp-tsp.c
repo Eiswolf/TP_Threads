@@ -45,7 +45,7 @@ void tsp (int hops, int len, uint64_t vpres, tsp_path_t path, long long int *cut
       return;
     }
 
-  
+
     if (hops == nb_towns) {
 	    int me = path [hops - 1];
 	    int dist = tsp_distance[me][0]; // retourner en 0
@@ -69,4 +69,3 @@ void tsp (int hops, int len, uint64_t vpres, tsp_path_t path, long long int *cut
         }
     }
 }
-

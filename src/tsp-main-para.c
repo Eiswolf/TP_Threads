@@ -38,6 +38,7 @@ struct mult_arg {
 
 // Source 
 void *f(void *arg){
+	printf("bonjour je suis le fils :!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	struct mult_arg * m = arg; 
 	while (!empty_queue (m->q)) {
         int hops = 0, len = 0;
@@ -54,7 +55,7 @@ void *f(void *arg){
 
 	tsp (hops, len, *(m->vpres), *(m->sol), m->cut, *(m->s), m->sol_len);
     }
-    return NULL; 
+    return NULL;
 }
 
 /** Paramètres **/
@@ -166,7 +167,7 @@ int main (int argc, char **argv)
     // 
     pthread_t tid; // 1 threads
     int rep;
-    struct mult_arg *pi;
+    struct mult_arg *pi = malloc(sizeof(struct mult_arg));
     pi->sol = &solution;
     pi->q = &q;
     pi->vpres = &vpres; 
@@ -180,8 +181,10 @@ int main (int argc, char **argv)
 		fprintf(stderr, "Yo"); perror("pthread_create");
 	} 
 
+	sleep(5);
     // ON TAFF ICI
 
+    free(pi);
 
     clock_gettime (CLOCK_REALTIME, &t2);
 
