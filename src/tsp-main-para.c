@@ -36,22 +36,27 @@ struct mult_arg {
 	int * sol_len;
 };
 
+pthread_mutex_t mutex_getjob;
+pthread_mutex_t mutex_min;
+
 // Source 
 void *f(void *arg){
 	printf("bonjour je suis le fils :!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	struct mult_arg * m = arg; 
 	while (!empty_queue (m->q)) {
         int hops = 0, len = 0;
+        pthread_mutex_lock(&mutex_getjob);
         get_job (m->q, *(m->sol), &hops, &len, m->vpres);
+        pthread_mutex_unlock(&mutex_getjob);
+
 	
 	// le noeud est moins bon que la solution courante
-	if (minimum < INT_MAX
-	    && (nb_towns - hops) > 10
-	    && ( (lower_bound_using_hk(*(m->sol), hops, len, *(m->vpres))) >= minimum
-		 || (lower_bound_using_lp(*(m->sol), hops, len, *(m->vpres))) >= minimum)
-	    )
-
-	  continue;
+    pthread_mutex_lock(&mutex_min);
+	if (minimum < INT_MAX && (nb_towns - hops) > 10 && ( (lower_bound_using_hk(*(m->sol), hops, len, *(m->vpres))) >= minimum || (lower_bound_using_lp(*(m->sol), hops, len, *(m->vpres))) >= minimum)){
+        pthread_mutex_unlock(&mutex_min);
+        continue;
+    }
+    pthread_mutex_unlock(&mutex_min);
 
 	tsp (hops, len, *(m->vpres), *(m->sol), m->cut, *(m->s), m->sol_len);
     }
@@ -148,6 +153,10 @@ int main (int argc, char **argv)
     genmap ();
 
     init_queue (&q);
+    // a mertre dans init_queue:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    pthread_mutex_init(&mutex_getjob, NULL);
+    pthread_mutex_init(&mutex_min, NULL);
+
 
     clock_gettime (CLOCK_REALTIME, &t1);
 
@@ -165,7 +174,7 @@ int main (int argc, char **argv)
     solution[0] = 0;
 
     // 
-    pthread_t tid; // 1 threads
+    pthread_t tid[4]; 
     int rep;
     struct mult_arg *pi = malloc(sizeof(struct mult_arg));
     pi->sol = &solution;
@@ -175,14 +184,22 @@ int main (int argc, char **argv)
     pi->s = &sol; 
     pi->sol_len = &sol_len;
 
-    if ( 0 == (rep = pthread_create(&tid, NULL, f,(void *)pi)) ) {
-		printf("Pthread creee\n");
-	} else { 
-		fprintf(stderr, "Yo"); perror("pthread_create");
-	} 
+    for(int ind = 0; ind < 4; ind ++){
+        if ( 0 == (rep = pthread_create(tid+ind, NULL, f,(void *)pi)) ) {
+    		printf("Pthread %i creee\n",ind);
+    	} else { 
+    		fprintf(stderr, "Yo"); perror("pthread_create");
+    	}    
+    }
 
-	sleep(5);
-    // ON TAFF ICI
+    void *status;
+	pthread_join(tid[0], &status);
+    pthread_join(tid[1], &status);
+    pthread_join(tid[2], &status);
+    pthread_join(tid[3], &status);
+    pthread_mutex_destroy(&mutex_getjob);
+    pthread_mutex_destroy(&mutex_min);
+
 
     free(pi);
 
