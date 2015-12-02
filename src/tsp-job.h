@@ -4,6 +4,10 @@
 
 #include <stdint.h>
 
+// mutex de protection de queue
+pthread_mutex_t mutex_queue; 
+
+
 /* Structure pour la tête de file */
 struct tsp_queue {
    struct tsp_cell *first;

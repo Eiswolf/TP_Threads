@@ -3,8 +3,8 @@
 cd ../build
 make clean
 make
-make test
-echo "Bonjour, on passe à make check\n"
+#make test
+#echo "Bonjour, on passe à make check\n"
 make check
-#./ensitsp 10 32 4 -s
+#rm image.svg & ./ensitsp 30 32 4 -s >> image.svg & eog image.svg
 cd ../src

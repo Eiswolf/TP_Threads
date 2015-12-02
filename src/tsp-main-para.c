@@ -28,7 +28,7 @@
 tsp_distance_matrix_t tsp_distance ={};
 
 struct mult_arg {
-	tsp_path_t * sol; 			// SI CA BUG C'EST SUREMENT A CAUSE DE CA!
+	tsp_path_t * sol; 	
 	struct tsp_queue *q;
 	uint64_t * vpres; 
 	long long int * cut; 
@@ -41,25 +41,33 @@ pthread_mutex_t mutex_min;
 
 // Source 
 void *f(void *arg){
-	printf("bonjour je suis le fils :!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	struct mult_arg * m = arg; 
-	while (!empty_queue (m->q)) {
+
+    pthread_mutex_lock(&mutex_queue);
+    while (!empty_queue (m->q)) {
+        pthread_mutex_unlock(&mutex_queue);
         int hops = 0, len = 0;
-        pthread_mutex_lock(&mutex_getjob);
+
+        //pthread_mutex_lock(&mutex_getjob);
         get_job (m->q, *(m->sol), &hops, &len, m->vpres);
-        pthread_mutex_unlock(&mutex_getjob);
-
-	
-	// le noeud est moins bon que la solution courante
-    pthread_mutex_lock(&mutex_min);
-	if (minimum < INT_MAX && (nb_towns - hops) > 10 && ( (lower_bound_using_hk(*(m->sol), hops, len, *(m->vpres))) >= minimum || (lower_bound_using_lp(*(m->sol), hops, len, *(m->vpres))) >= minimum)){
+        //pthread_mutex_unlock(&mutex_getjob);
+    
+        // le noeud est moins bon que la solution courante
+        pthread_mutex_lock(&mutex_min);
+        if (minimum < INT_MAX && (nb_towns - hops) > 10 && ( (lower_bound_using_hk(*(m->sol), hops, len, *(m->vpres))) >= minimum || (lower_bound_using_lp(*(m->sol), hops, len, *(m->vpres))) >= minimum)){
+            pthread_mutex_unlock(&mutex_min);
+            pthread_mutex_lock(&mutex_queue);
+            continue;
+        }
         pthread_mutex_unlock(&mutex_min);
-        continue;
-    }
-    pthread_mutex_unlock(&mutex_min);
 
-	tsp (hops, len, *(m->vpres), *(m->sol), m->cut, *(m->s), m->sol_len);
+        tsp (hops, len, *(m->vpres), *(m->sol), m->cut, *(m->s), m->sol_len);
+    
+        pthread_mutex_lock(&mutex_queue);
+
     }
+    pthread_mutex_unlock(&mutex_queue);
+
     return NULL;
 }
 
@@ -156,6 +164,8 @@ int main (int argc, char **argv)
     // a mertre dans init_queue:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     pthread_mutex_init(&mutex_getjob, NULL);
     pthread_mutex_init(&mutex_min, NULL);
+    pthread_mutex_init(&mutex_queue, NULL);
+
 
 
     clock_gettime (CLOCK_REALTIME, &t1);
@@ -188,7 +198,7 @@ int main (int argc, char **argv)
         if ( 0 == (rep = pthread_create(tid+ind, NULL, f,(void *)pi)) ) {
     		printf("Pthread %i creee\n",ind);
     	} else { 
-    		fprintf(stderr, "Yo"); perror("pthread_create");
+    		fprintf(stderr, "Yo"); perror("<!-- pthread_create -->");
     	}    
     }
 
@@ -199,6 +209,8 @@ int main (int argc, char **argv)
     pthread_join(tid[3], &status);
     pthread_mutex_destroy(&mutex_getjob);
     pthread_mutex_destroy(&mutex_min);
+    pthread_mutex_destroy(&mutex_queue);
+
 
 
     free(pi);
