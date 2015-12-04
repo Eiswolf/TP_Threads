@@ -37,7 +37,8 @@ struct mult_arg {
 };
 
 pthread_mutex_t mutex_getjob;
-pthread_mutex_t mutex_min;
+//pthread_mutex_t mutex_min;
+
 
 // Source 
 void *f(void *arg){
@@ -165,6 +166,7 @@ int main (int argc, char **argv)
     pthread_mutex_init(&mutex_getjob, NULL);
     pthread_mutex_init(&mutex_min, NULL);
     pthread_mutex_init(&mutex_queue, NULL);
+    pthread_mutex_init(&mutex_cuts, NULL);
 
 
 
@@ -210,6 +212,7 @@ int main (int argc, char **argv)
     pthread_mutex_destroy(&mutex_getjob);
     pthread_mutex_destroy(&mutex_min);
     pthread_mutex_destroy(&mutex_queue);
+    pthread_mutex_destroy(&mutex_cuts);
 
 
 

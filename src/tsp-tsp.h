@@ -1,12 +1,13 @@
 #ifndef TSP_TSP_H
 #define TSP_TSP_H
 #include <stdint.h>
-
+#include <pthread.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
+pthread_mutex_t mutex_cuts;
+pthread_mutex_t mutex_min;
 /* dernier minimum trouvé */
 extern int minimum;
 
