@@ -6,7 +6,7 @@
 
 // mutex de protection de queue
 pthread_mutex_t mutex_queue; 
-
+pthread_mutex_t mutex_tsp;
 
 /* Structure pour la tête de file */
 struct tsp_queue {

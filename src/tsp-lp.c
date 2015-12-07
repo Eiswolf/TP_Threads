@@ -95,7 +95,6 @@ void save_lp(FILE* f, tsp_path_t path, int hops, int len, uint64_t vpres) {
    son résultat */ 
 
 int lower_bound_using_lp(tsp_path_t path, int hops, int len, uint64_t vpres) {
-
   if (SOLVEUR == SOLVEUR_NONE) {
     return 0;
   }

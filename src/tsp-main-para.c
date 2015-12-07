@@ -44,30 +44,40 @@ pthread_mutex_t mutex_getjob;
 void *f(void *arg){
 	struct mult_arg * m = arg; 
 
-    pthread_mutex_lock(&mutex_queue);
-    while (!empty_queue (m->q)) {
-        pthread_mutex_unlock(&mutex_queue);
+    // On va consulter ou se servir dans la queue donc il faut la protéger pendant ces opérations
+   // pthread_mutex_lock(&mutex_queue);
+    while (!empty_queue (m->q)) { // Consultation queue
+       // pthread_mutex_unlock(&mutex_queue);
         int hops = 0, len = 0;
 
-        //pthread_mutex_lock(&mutex_getjob);
+        pthread_mutex_lock(&mutex_getjob);
         get_job (m->q, *(m->sol), &hops, &len, m->vpres);
-        //pthread_mutex_unlock(&mutex_getjob);
+        pthread_mutex_unlock(&mutex_getjob);
     
         // le noeud est moins bon que la solution courante
-        pthread_mutex_lock(&mutex_min);
+        //pthread_mutex_lock(&mutex_min);
+        
+        pthread_mutex_lock(&mutex_getjob);
         if (minimum < INT_MAX && (nb_towns - hops) > 10 && ( (lower_bound_using_hk(*(m->sol), hops, len, *(m->vpres))) >= minimum || (lower_bound_using_lp(*(m->sol), hops, len, *(m->vpres))) >= minimum)){
-            pthread_mutex_unlock(&mutex_min);
-            pthread_mutex_lock(&mutex_queue);
+          //  pthread_mutex_unlock(&mutex_min);
+            //pthread_mutex_lock(&mutex_queue);
+        pthread_mutex_unlock(&mutex_getjob);
             continue;
         }
-        pthread_mutex_unlock(&mutex_min);
+        pthread_mutex_unlock(&mutex_getjob);
 
+        // Ici, le noeud est meilleur que la solution courante donc il va falloir la protéger
+        //pthread_mutex_unlock(&mutex_min);
+        
+
+        //pthread_mutex_lock(&mutex_tsp);
         tsp (hops, len, *(m->vpres), *(m->sol), m->cut, *(m->s), m->sol_len);
+        //pthread_mutex_unlock(&mutex_tsp);
     
-        pthread_mutex_lock(&mutex_queue);
+        //pthread_mutex_lock(&mutex_queue);
 
     }
-    pthread_mutex_unlock(&mutex_queue);
+    //pthread_mutex_unlock(&mutex_queue);
 
     return NULL;
 }
@@ -162,8 +172,10 @@ int main (int argc, char **argv)
     genmap ();
 
     init_queue (&q);
-    // a mertre dans init_queue:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    // a mettre dans init_queue:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     pthread_mutex_init(&mutex_getjob, NULL);
+    pthread_mutex_init(&mutex_path, NULL);
+    pthread_mutex_init(&mutex_tsp, NULL);
     pthread_mutex_init(&mutex_min, NULL);
     pthread_mutex_init(&mutex_queue, NULL);
     pthread_mutex_init(&mutex_cuts, NULL);
@@ -200,7 +212,8 @@ int main (int argc, char **argv)
         if ( 0 == (rep = pthread_create(tid+ind, NULL, f,(void *)pi)) ) {
     		printf("Pthread %i creee\n",ind);
     	} else { 
-    		fprintf(stderr, "Yo"); perror("<!-- pthread_create -->");
+    		fprintf(stderr, "Erreur lors de la création d'un thread");
+            perror("<!-- pthread_create -->");
     	}    
     }
 
@@ -209,7 +222,11 @@ int main (int argc, char **argv)
     pthread_join(tid[1], &status);
     pthread_join(tid[2], &status);
     pthread_join(tid[3], &status);
+
+
     pthread_mutex_destroy(&mutex_getjob);
+    pthread_mutex_destroy(&mutex_tsp);
+    pthread_mutex_destroy(&mutex_path);
     pthread_mutex_destroy(&mutex_min);
     pthread_mutex_destroy(&mutex_queue);
     pthread_mutex_destroy(&mutex_cuts);

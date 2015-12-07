@@ -8,6 +8,7 @@ extern "C" {
 
 pthread_mutex_t mutex_cuts;
 pthread_mutex_t mutex_min;
+pthread_mutex_t mutex_path;
 /* dernier minimum trouvé */
 extern int minimum;
 

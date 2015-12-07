@@ -56,21 +56,35 @@ void tsp (int hops, int len, uint64_t vpres, tsp_path_t path, long long int *cut
 	    int me = path [hops - 1];
 	    int dist = tsp_distance[me][0]; // retourner en 0
             if ( len + dist < minimum ) {
+            pthread_mutex_lock(&mutex_min);
 		    minimum = len + dist;
 		    *sol_len = len + dist;
+            pthread_mutex_unlock(&mutex_min);
+
+        pthread_mutex_lock(&mutex_path);
 		    memcpy(sol, path, nb_towns*sizeof(int));
-		    if (!quiet)
-		      print_solution (path, len+dist);
+        pthread_mutex_unlock(&mutex_path);
+		    if (!quiet) {
+                pthread_mutex_lock(&mutex_path);
+		        print_solution (path, len+dist);
+                pthread_mutex_unlock(&mutex_path);
+            }
 	    }
     } else {
+        pthread_mutex_lock(&mutex_path);
         int me = path [hops - 1];        
+        pthread_mutex_unlock(&mutex_path);
         for (int i = 0; i < nb_towns; i++) {
 	  if (!present (i, hops, path, vpres)) {
+            pthread_mutex_lock(&mutex_path);
                 path[hops] = i;
-		vpres |= (1<<i);
+		        vpres |= (1<<i);
                 int dist = tsp_distance[me][i];
+             pthread_mutex_unlock(&mutex_path);
                 tsp (hops + 1, len + dist, vpres, path, cuts, sol, sol_len);
-		vpres &= (~(1<<i));
+            pthread_mutex_lock(&mutex_path);
+		        vpres &= (~(1<<i));
+            pthread_mutex_unlock(&mutex_path);
             }
         }
     }

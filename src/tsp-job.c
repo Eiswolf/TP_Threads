@@ -71,17 +71,18 @@ int get_job (struct tsp_queue *q, tsp_path_t p, int *hops, int *len, uint64_t *v
        q->last = 0;
    }
    pthread_mutex_unlock(&mutex_queue);
-
+   pthread_mutex_lock(&mutex_tsp);
    *len = ptr->tsp_job.len;
    *hops = ptr->tsp_job.hops;
    *vpres = ptr->tsp_job.vpres;
    memcpy (p, ptr->tsp_job.path, *hops * sizeof(p[0]));
 
+   pthread_mutex_unlock(&mutex_tsp);
    free (ptr);
 
-pthread_mutex_lock(&mutex_queue);
+//pthread_mutex_lock(&mutex_queue);
    q->nb --;
-pthread_mutex_unlock(&mutex_queue);
+//pthread_mutex_unlock(&mutex_queue);
    if (affiche_progress)
      printf("<!- %d / %d %% ->\n",q->nb, q->nbmax);
 
